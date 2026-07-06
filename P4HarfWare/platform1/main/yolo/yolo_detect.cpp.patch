@@ -1,0 +1,19 @@
+--- /home/loser/Projects/Smart-Vending-Machine/P4HarfWare/platform1/main/yolo/yolo_detect.cpp
++++ /home/loser/Projects/Smart-Vending-Machine/P4HarfWare/platform1/main/yolo/yolo_detect.cpp
+@@ -62,6 +62,15 @@
+     auto *ot = s_model->get_output("output0");
+     if (!ot) { ESP_LOGE(TAG, "output0 not found"); return ESP_FAIL; }
+     auto os = ot->get_shape();   // expect {1, 8, 2100}
++
++    auto *ot1 = s_model->get_output("output1");
++    if (ot1) {
++        ESP_LOGI(TAG, "output1 found! shape=[%d,%d,%d] exp=%d", 
++                 ot1->get_shape().size() > 1 ? ot1->get_shape()[1] : 0,
++                 ot1->get_shape().size() > 2 ? ot1->get_shape()[2] : 0,
++                 ot1->get_shape().size() > 3 ? ot1->get_shape()[3] : 0,
++                 (int)ot1->exponent);
++    }
++
+     int C = os[1], N = os[2];
+     float oscale = DL_SCALE((int)ot->exponent);
+     ESP_LOGI(TAG, "output0 shape=[1,%d,%d] dtype=%s exp=%d scale=%g",

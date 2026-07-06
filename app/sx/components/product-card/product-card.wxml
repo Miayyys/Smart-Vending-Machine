@@ -1,0 +1,36 @@
+<!--components/product-card/product-card.wxml-->
+<view class="product-card {{showStockStatus ? 'show-stock-status' : ''}}" bindtap="onProductTap">
+  <!-- 商品图片 -->
+  <view class="product-image">
+    <image
+      src="{{product.imageUrl || '/images/product-default.png'}}"
+      mode="aspectFill"
+      binderror="onImageError"
+    />
+    <view class="stock-status" wx:if="{{showStockStatus}}" class="{{stockStatusColor}}">
+      {{stockStatusText}}
+    </view>
+  </view>
+
+  <!-- 商品信息 -->
+  <view class="product-info">
+    <view class="product-name">{{product.name}}</view>
+    <view class="product-sku text-light" wx:if="{{product.sku}}">SKU: {{product.sku}}</view>
+
+    <!-- 价格 -->
+    <view class="product-price" wx:if="{{showPrice}}">
+      <text class="currency">¥</text>
+      <text class="amount">{{formatPrice(product.price)}}</text>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="product-actions" wx:if="{{showAction}}">
+      <button class="btn btn-default btn-small" bindtap="onViewDetail" catchtap="true">
+        查看详情
+      </button>
+      <button class="btn btn-primary btn-small" bindtap="onBuyTap" catchtap="true">
+        {{stock === 0 ? '缺货' : '购买'}}
+      </button>
+    </view>
+  </view>
+</view>

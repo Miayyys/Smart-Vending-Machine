@@ -1,0 +1,35 @@
+<!--index.wxml-->
+<view class="container">
+  <!-- 欢迎横幅 -->
+  <view class="banner">
+    <image src="{{bannerImage}}" mode="aspectFill" class="banner-image" />
+    <view class="banner-content">
+      <text class="banner-title">欢迎来到校园智能柜</text>
+      <text class="banner-subtitle">便捷购物，智能生活</text>
+    </view>
+  </view>
+
+  <!-- 功能入口 -->
+  <view class="features-section">
+    <view class="section-title">快捷功能</view>
+    <view class="features-grid">
+      <view class="feature-item" bindtap="goToProducts">
+        <view class="feature-icon">📦</view>
+        <text class="feature-title">浏览商品</text>
+      </view>
+      <view class="feature-item" bindtap="goToProducts">
+        <view class="feature-icon">🚪</view>
+        <text class="feature-title">开门购买</text>
+      </view>
+      <view class="feature-item" bindtap="goToOrders">
+        <view class="feature-icon">📋</view>
+        <text class="feature-title">我的订单</text>
+      </view>
+      <view class="feature-item" bindtap="goToOrders">
+        <view class="feature-icon">💰</view>
+        <text class="feature-title">支付结算</text>
+      </view>
+    </view>
+  </view>
+
+</view>

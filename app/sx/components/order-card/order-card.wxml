@@ -1,0 +1,84 @@
+<!--components/order-card/order-card.wxml-->
+<view class="order-card {{expanded ? 'expanded' : ''}}" bindtap="onOrderTap">
+  <!-- 订单基本信息 -->
+  <view class="order-header">
+    <view class="order-info">
+      <view class="order-main">
+        <text class="order-id">#{{order.id}}</text>
+        <text class="order-time">{{displayTime}}</text>
+      </view>
+      <view class="device-info">
+        <text class="device-name">{{order.deviceId}}</text>
+      </view>
+    </view>
+
+    <view class="order-amount">
+      <text class="amount">¥{{order.totalAmount}}</text>
+    </view>
+
+    <view class="order-status {{statusTag.color}}">
+      {{statusTag.text}}
+    </view>
+  </view>
+
+  <!-- 订单详情（展开时显示） -->
+  <view class="order-details" wx:if="{{expanded}}">
+    <view class="divider"></view>
+
+    <!-- 商品明细 -->
+    <view class="section-title">商品明细</view>
+    <view class="items-list">
+      <view class="item-row" wx:for="{{order.items}}" wx:key="id">
+        <text class="item-name">{{item.productName}}</text>
+        <text class="item-qty">x{{item.qty}}</text>
+        <text class="item-price">¥{{item.price}}</text>
+      </view>
+    </view>
+
+    <!-- 订单金额 -->
+    <view class="order-total">
+      <text class="total-label">总计</text>
+      <text class="total-amount">¥{{order.totalAmount}}</text>
+    </view>
+
+    <!-- 订单信息 -->
+    <view class="order-meta">
+      <view class="meta-item">
+        <text class="meta-label">用户</text>
+        <text class="meta-value">{{order.userId || '未设置'}}</text>
+      </view>
+      <view class="meta-item">
+        <text class="meta-label">设备</text>
+        <text class="meta-value">{{order.deviceId}}</text>
+      </view>
+      <view class="meta-item" wx:if="{{order.settleTime}}">
+        <text class="meta-label">支付时间</text>
+        <text class="meta-value">{{formatDate(order.settleTime)}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="order-actions" wx:if="{{showActions}}">
+    <button class="btn btn-default btn-small" bindtap="onViewDetail" catchtap="true">
+      查看详情
+    </button>
+    <button class="btn btn-primary btn-small"
+            wx:if="{{order.payStatus === 'UNPAID'}}"
+            bindtap="onPay"
+            catchtap="true">
+      立即支付
+    </button>
+    <button class="btn btn-default btn-small"
+            wx:if="{{order.payStatus !== 'UNPAID'}}"
+            bindtap="onEdit"
+            catchtap="true">
+      编辑
+    </button>
+    <button class="btn btn-error btn-small"
+            bindtap="onDelete"
+            catchtap="true">
+      删除
+    </button>
+  </view>
+</view>

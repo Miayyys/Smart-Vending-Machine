@@ -1,0 +1,145 @@
+name: retail-cloud
+
+services:
+  emqx:
+    image: emqx/emqx:5.8
+    container_name: retail-emqx
+    restart: unless-stopped
+    # 先只绑 127.0.0.1：联调期内网/本机访问即可；公网放行由阿里云安全组另点
+    # 真要对公网开放时，把 127.0.0.1 去掉并确保 EMQX 鉴权已生效
+    ports:
+      - "1883:1883"     # MQTT (明文，账号鉴权，公网开放)
+      - "127.0.0.1:18083:18083"   # Dashboard
+      - "127.0.0.1:8083:8083"     # MQTT over WebSocket
+    environment:
+      EMQX_NAME: retail-emqx
+      EMQX_HOST: 127.0.0.1
+      # 小内存：降 Erl 参数
+      EMQX_NODE__PROCESS_LIMIT: "8192"
+      EMQX_NODE__MAX_PORTS: "1024"
+      # Daemon Dashboard 默认账号（来自 .env）
+      EMQX_DASHBOARD__DEFAULT_PASSWORD: ${EMQX_DASHBOARD_PASSWORD}
+      EMQX_DASHBOARD__DEFAULT_USERNAME: ${EMQX_DASHBOARD_USERNAME}
+    volumes:
+      - emqx-data:/opt/emqx/data
+      - emqx-log:/opt/emqx/log
+      - ./emqx/init-users.sh:/opt/emqx/init-users.sh:ro
+    networks: [retail-net]
+    mem_limit: 450m
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 20s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+  mysql:
+    image: mysql:8.0
+    container_name: retail-mysql
+    restart: unless-stopped
+    # 不对外暴露，仅同网容器访问；保留 127.0.0.1 映射便于本机排错
+    ports:
+      - "127.0.0.1:3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: Asia/Shanghai
+    command:
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --innodb-buffer-pool-size=128M
+      - --max-connections=80
+      - --performance-schema=OFF
+    volumes:
+      - ./mysql/conf/my.cnf:/etc/mysql/conf.d/my-extra.cnf:ro
+      - ./mysql/init:/docker-entrypoint-initdb.d:ro
+      - ./mysql/data:/var/lib/mysql
+    networks: [retail-net]
+    mem_limit: 400m
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  backend:
+    build: ./backend
+    container_name: retail-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      emqx:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL}
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      JAVA_OPTS: ${JAVA_OPTS}
+      MQTT_HOST: emqx
+      MQTT_PORT: "1883"
+      MQTT_USERNAME: ${EMQX_UI_USERNAME}
+      MQTT_PASSWORD: ${EMQX_UI_PASSWORD}
+      MQTT_TOPIC_PREFIX: retail
+      SNAPSHOT_KEEP: ${SNAPSHOT_KEEP:-200}
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./firmware:/app/firmware:rw
+      - ./snapshots:/app/snapshots:rw
+    networks: [retail-net]
+    mem_limit: 400m
+
+  inference:
+    build: ./inference
+    container_name: retail-inference
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - ./snapshots:/app/snapshots:ro
+      - ./inference/best.pt:/app/model/best.pt:ro
+    networks: [retail-net]
+    mem_limit: 512m
+    environment:
+      MODEL_PATH: /app/model/best.pt
+      INFERENCE_PORT: "8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: retail-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./.htpasswd:/etc/nginx/.htpasswd:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./frontend:/usr/share/nginx/html:ro
+    networks: [retail-net]
+    depends_on:
+      - backend
+      - emqx
+    mem_limit: 32m
+
+volumes:
+  emqx-data:
+  emqx-log:
+
+networks:
+  retail-net:
+    driver: bridge

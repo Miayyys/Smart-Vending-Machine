@@ -1,0 +1,71 @@
+/* components/empty-state/empty-state.wxss */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80rpx 40rpx;
+  text-align: center;
+  min-height: 400rpx;
+}
+
+.empty-icon {
+  font-size: 120rpx;
+  margin-bottom: 30rpx;
+  opacity: 0.6;
+}
+
+.empty-title {
+  font-size: 32rpx;
+  color: var(--text-color);
+  font-weight: bold;
+  margin-bottom: 20rpx;
+}
+
+.empty-description {
+  font-size: 26rpx;
+  color: var(--text-color-light);
+  line-height: 1.5;
+  margin-bottom: 40rpx;
+}
+
+.empty-action {
+  margin-top: 20rpx;
+}
+
+.empty-action .btn {
+  min-width: 200rpx;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:active {
+  background-color: var(--secondary-color);
+}
+
+.btn-default {
+  background-color: white;
+  color: var(--text-color);
+  border: 1rpx solid var(--border-color);
+}
+
+.btn-default:active {
+  opacity: 0.8;
+}
+
+.btn-error {
+  background-color: var(--error-color);
+  color: white;
+}
+
+.btn-error:active {
+  opacity: 0.8;
+}
+
+.btn-small {
+  padding: 16rpx 40rpx;
+  font-size: 24rpx;
+}

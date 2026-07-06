@@ -1,0 +1,35 @@
+idf_component_register(SRCS "main.cpp"
+                           "camera/ppa_rotate.cpp"
+                           "camera/camera_pipeline.cpp"
+                           "network/upload_snapshot.cpp"
+                           "network/wifi_mqtt.cpp"
+                           "bus/state_machine.cpp"
+                           "repl/console.cpp"
+                           "yolo/yolo_detect.cpp"
+                           "door/door_sensor.cpp"
+                           "indicators/servo.cpp"
+                           "indicators/rgb_led.cpp"
+                           "${IDF_PATH}/components/json/cJSON/cJSON.c"
+                           "${IDF_PATH}/components/mqtt/esp-mqtt/mqtt_client.c"
+                           "${IDF_PATH}/components/mqtt/esp-mqtt/lib/mqtt_msg.c"
+                           "${IDF_PATH}/components/mqtt/esp-mqtt/lib/mqtt_outbox.c"
+                           "${IDF_PATH}/components/mqtt/esp-mqtt/lib/platform_esp32_idf.c"
+                    INCLUDE_DIRS "."
+                                 "bus"
+                                 "camera"
+                                 "network"
+                                 "repl"
+                                 "yolo"
+                                 "door"
+                                 "indicators"
+                                 "${IDF_PATH}/components/json/cJSON"
+                                 "${IDF_PATH}/components/mqtt/esp-mqtt/include"
+                                 "${IDF_PATH}/components/mqtt/esp-mqtt/lib/include"
+                                 "${IDF_PATH}/components/esp_http_client/include"
+                    EMBED_TXTFILES "network/server_cert.pem"
+                                   "yolo/test.jpg")
+
+# Relax C++ strictness for designated initializers and void* conversions
+target_compile_options(${COMPONENT_LIB} PRIVATE
+    $<$<COMPILE_LANGUAGE:CXX>:-fpermissive>
+    $<$<COMPILE_LANGUAGE:CXX>:-Wno-error=missing-field-initializers>)

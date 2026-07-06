@@ -1,0 +1,98 @@
+<!--pages/settings/settings.wxml-->
+<view class="container">
+    <!-- 用户信息 -->
+  <view class="user-section card">
+    <view class="user-info">
+      <view class="user-avatar">
+        <image src="{{userInfo.avatarUrl || '/images/avatar-default.png'}}" mode="aspectFill" />
+      </view>
+      <view class="user-details">
+        <text class="user-name">{{userInfo.nickname}}</text>
+        <text class="user-id">ID: {{userInfo.userId}}</text>
+        <text class="login-time">最后登录: {{userInfo.lastLogin}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 应用设置 -->
+  <view class="settings-section">
+    <view class="section-title">应用设置</view>
+
+    <view class="setting-item">
+      <view class="setting-info">
+        <text class="setting-name">接收通知</text>
+        <text class="setting-desc">接收订单状态和系统通知</text>
+      </view>
+      <switch checked="{{settings.notifications}}" bindchange="toggleNotification" />
+    </view>
+
+
+    <view class="setting-item">
+      <view class="setting-info">
+        <text class="setting-name">自动刷新</text>
+        <text class="setting-desc">页面自动刷新数据</text>
+      </view>
+      <switch checked="{{settings.autoRefresh}}" bindchange="toggleAutoRefresh" />
+    </view>
+
+    <view class="setting-item">
+      <view class="setting-info">
+        <text class="setting-name">启用缓存</text>
+        <text class="setting-desc">离线时使用缓存数据</text>
+      </view>
+      <switch checked="{{settings.cacheEnabled}}" bindchange="toggleCache" />
+    </view>
+  </view>
+
+  <!-- 数据管理 -->
+  <view class="settings-section">
+    <view class="section-title">数据管理</view>
+
+    <view class="setting-item" bindtap="clearCache">
+      <view class="setting-info">
+        <text class="setting-name">清除缓存</text>
+        <text class="setting-desc">清除所有本地缓存数据</text>
+      </view>
+      <text class="setting-arrow">></text>
+    </view>
+  </view>
+
+  <!-- 关于 -->
+  <view class="settings-section">
+    <view class="section-title">关于</view>
+
+    <view class="setting-item" bindtap="showAbout">
+      <view class="setting-info">
+        <text class="setting-name">关于我们</text>
+        <text class="setting-desc">版本信息和开发团队</text>
+      </view>
+      <text class="setting-arrow">></text>
+    </view>
+
+    <view class="setting-item" bindtap="showUserAgreement">
+      <view class="setting-info">
+        <text class="setting-name">用户协议</text>
+        <text class="setting-desc">查看用户服务协议</text>
+      </view>
+      <text class="setting-arrow">></text>
+    </view>
+
+    <view class="setting-item" bindtap="showPrivacyPolicy">
+      <view class="setting-info">
+        <text class="setting-name">隐私政策</text>
+        <text class="setting-desc">查看隐私保护政策</text>
+      </view>
+      <text class="setting-arrow">></text>
+    </view>
+  </view>
+
+  <!-- 退出登录 -->
+  <view class="logout-section">
+    <button class="logout-btn" bindtap="logout">退出登录</button>
+  </view>
+
+  <!-- 返回按钮 -->
+  <view class="back-section">
+    <button class="back-btn" bindtap="goBack">返回</button>
+  </view>
+</view>

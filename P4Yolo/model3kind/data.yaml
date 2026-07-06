@@ -1,0 +1,9 @@
+path: .
+train: train/images
+val: val/images
+
+nc: 3
+names:
+  0: nongfu
+  1: runtian
+  2: soda

@@ -1,0 +1,57 @@
+<!--pages/orders/orders.wxml-->
+<view class="container">
+  <!-- 头部 -->
+  <view class="header">
+    <text class="title">我的订单</text>
+  </view>
+
+  <!-- 主内容区域 -->
+  <view class="content-container">
+    <!-- 加载状态 -->
+    <view class="loading" wx:if="{{loading}}">
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <!-- 错误状态 -->
+    <view class="error" wx:if="{{error}}">
+      <text class="error-text">{{error}}</text>
+      <button class="retry-btn btn btn-default" bindtap="retryLoad">重试</button>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{!loading && !error && orders.length === 0}}">
+      <text class="empty-state-icon">📋</text>
+      <text class="empty-state-text">暂无订单</text>
+      <text class="empty-state-tip">开门购买后订单会显示在这里</text>
+    </view>
+
+    <!-- 订单列表 -->
+    <scroll-view class="orders-list" wx:if="{{!loading && !error && orders.length > 0}}" scroll-y>
+      <view class="order-item card" wx:for="{{orders}}" wx:key="id">
+        <view class="order-header">
+          <view class="order-info">
+            <text class="order-id">订单号: {{item.displayId}}</text>
+            <text class="order-time">{{item.createTime || ''}}</text>
+          </view>
+          <view class="order-status {{item.statusClass}}">
+            {{item.statusText}}
+          </view>
+        </view>
+
+        <view class="order-summary">
+          <text class="order-items">{{item.summaryText}}</text>
+          <text class="order-amount">¥{{item.totalAmount}}</text>
+        </view>
+
+        <view class="order-actions">
+          <button class="view-detail-btn" bindtap="viewOrderDetail"
+                  data-order-id="{{item.id}}" data-batch-id="{{item.batchId}}"
+                  data-total-amount="{{item.totalAmount}}" data-pay-status="{{item.payStatus}}"
+                  data-create-time="{{item.createTime}}">
+            查看详情
+          </button>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+</view>

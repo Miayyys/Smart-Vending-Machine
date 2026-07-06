@@ -1,0 +1,29 @@
+## IDF Component Manager Manifest File
+dependencies:
+  espressif/esp_wifi_remote:
+    matches:
+      - if: "idf_version >= 6.0"
+        version: ">=1.6,<2.0"
+      - if: "idf_version < 6.0"
+        version: "0.14.*"
+
+  espressif/esp_hosted:
+    matches:
+      - if: "idf_version >= 6.0"
+        version: ">=2.12,<3.0"
+      - if: "idf_version < 6.0"
+        version: "1.4.*"
+
+  esp_video:
+    version: ">=2.2,<3.0"
+
+  espressif/esp_new_jpeg:
+    version: "*"
+
+  # YOLO model (reserved, uncomment when YOLO_ENABLED=1 in config.h)
+  # espressif/coco_detect:
+  #   version: "*"
+  #   # override_path: "/path/to/esp-dl/models/coco_detect"
+
+  idf:
+    version: ">=5.4"

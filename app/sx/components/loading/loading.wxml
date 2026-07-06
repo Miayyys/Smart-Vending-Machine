@@ -1,0 +1,33 @@
+<!--components/loading/loading.wxml-->
+<view class="loading-container {{mask ? 'loading-mask' : ''}}" wx:if="{{loading}}">
+  <!-- Spinner 类型 -->
+  <view class="loading loading-spinner" wx:if="{{type === 'spinner'}}">
+    <view class="spinner">
+      <view class="spinner-circle"></view>
+    </view>
+    <text class="loading-text" wx:if="{{text}}">{{text}}</text>
+  </view>
+
+  <!-- Dots 类型 -->
+  <view class="loading loading-dots" wx:if="{{type === 'dots'}}">
+    <view class="dots">
+      <view class="dot"></view>
+      <view class="dot"></view>
+      <view class="dot"></view>
+    </view>
+    <text class="loading-text" wx:if="{{text}}">{{text}}</text>
+  </view>
+
+  <!-- Pulse 类型 -->
+  <view class="loading loading-pulse" wx:if="{{type === 'pulse'}}">
+    <view class="pulse"></view>
+    <text class="loading-text" wx:if="{{text}}">{{text}}</text>
+  </view>
+
+  <!-- 环形进度条 -->
+  <view class="loading loading-circle" wx:if="{{type === 'circle'}}">
+    <view class="circle-loading">
+      <text class="loading-text" wx:if="{{text}}">{{text}}</text>
+    </view>
+  </view>
+</view>

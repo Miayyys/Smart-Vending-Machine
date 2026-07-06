@@ -1,0 +1,36 @@
+# Dependencies
+__pycache__/
+*.pyc
+.venv/
+node_modules/
+
+# ESP-IDF build outputs
+build/
+managed_components/
+dependencies.lock
+*.bin
+
+# IDE
+.vscode/
+.idea/
+
+# Environment & secrets
+.env
+.htpasswd
+*.key
+*.pem
+.claude/settings.local.json
+
+# MySQL runtime data (Docker volume)
+mysql/data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# YOLO training artifacts (large binary files)
+*.onnx
+*.pt
+*.espdl
+*.info
+*_esp32p4_8bit.json

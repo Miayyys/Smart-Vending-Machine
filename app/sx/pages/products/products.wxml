@@ -1,0 +1,67 @@
+<!--pages/products/products.wxml-->
+<view class="container">
+  <!-- 头部 -->
+  <view class="header">
+    <text class="title">商品列表</text>
+  </view>
+
+  <!-- 主内容区域 -->
+  <view class="content-container">
+    <!-- 加载状态 -->
+    <view class="loading" wx:if="{{loading}}">
+      <text class="loading-text">加载中...</text>
+    </view>
+
+    <!-- 错误状态 -->
+    <view class="error" wx:if="{{error}}">
+      <text class="error-text">{{error}}</text>
+      <button class="retry-btn btn btn-default" bindtap="loadProducts">重试</button>
+    </view>
+
+    <!-- 网络错误状态 -->
+    <view class="network-error" wx:if="{{error && error.includes('网络')}}">
+      <text class="error-text">🔗 网络连接失败</text>
+      <text class="error-tip">请检查网络设置并重试</text>
+      <button class="retry-btn btn btn-default" bindtap="loadProducts">
+        重新连接
+      </button>
+    </view>
+
+    <!-- 空状态（只在无错误且无商品时显示） -->
+    <view class="empty-state" wx:if="{{!loading && !error && products.length === 0}}">
+      <text class="empty-state-icon">📦</text>
+      <text class="empty-state-text">暂无商品</text>
+      <button class="retry-btn btn btn-default" bindtap="loadProducts">刷新</button>
+    </view>
+
+    <!-- 商品列表 -->
+    <scroll-view class="products-list" wx:if="{{!loading && !error && products.length > 0}}" scroll-y>
+      <view class="product-item card" wx:for="{{products}}" wx:key="id">
+        <view class="product-image">
+          <image src="{{item.imageUrl || '/images/product-placeholder.png'}}" mode="aspectFit" binderror="onImageError" />
+          <!-- 图片加载失败时显示默认图标 -->
+          <text class="product-icon" wx:if="{{!item.imageUrl}}">📦</text>
+        </view>
+        <view class="product-info">
+          <view class="product-name">{{item.name}}</view>
+          <view class="product-price text-primary">
+            ¥{{item.price}}
+          </view>
+          <view class="product-stock">
+            <text class="stock-label">库存:</text>
+            <text class="stock-value {{item.stock > 0 ? 'text-success' : 'text-error'}}">
+              {{item.stock !== undefined ? item.stock : '?'}}件
+            </text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 底部开门按钮 -->
+  <view class="bottom-actions" wx:if="{{!loading && !error && products.length > 0}}">
+    <button class="open-door-btn" bindtap="goToOpenDoor">
+      开门
+    </button>
+  </view>
+</view>

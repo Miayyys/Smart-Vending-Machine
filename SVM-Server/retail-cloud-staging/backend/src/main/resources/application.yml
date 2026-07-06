@@ -1,0 +1,51 @@
+# Spring Boot 配置
+server:
+  port: 8080
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate          # schema 由 init SQL 维护，应用只校验
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        jdbc.time_zone: Asia/Shanghai
+  datasource:
+    # 由 .env -> compose -> 环境变量注入
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 55MB
+
+# MQTT（由 .env -> compose 注入）
+mqtt:
+  host: ${MQTT_HOST}
+  port: ${MQTT_PORT:1883}
+  username: ${MQTT_USERNAME}
+  password: ${MQTT_PASSWORD}
+  topic-prefix: ${MQTT_TOPIC_PREFIX:retail}
+
+# ── 推理服务 ──────────────────────────────────────
+inference:
+  url: ${INFERENCE_URL:http://inference:8000}
+
+# 模型类别名 → product 表 ID 映射
+# nongfu=农夫山泉(6)  runtian=润田(7)  soda=可乐(2)  yogurt=酸奶(8)
+detection:
+  product-mapping:
+    nongfu: 6
+    runtian: 7
+    soda: 2
+    yogurt: 8
+
+logging:
+  level:
+    root: INFO
+    cn.retail.cloud: DEBUG

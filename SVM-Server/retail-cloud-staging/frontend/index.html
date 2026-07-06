@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>校园零售柜管理平台</title>
+  <link rel="stylesheet" href="css/style.css?v=9">
+  <!-- MQTT.js 本地副本 -->
+  <script src="js/vendor/mqtt.min.js"></script>
+</head>
+<body>
+  <!-- 侧边栏 -->
+  <button id="menu-toggle" class="menu-toggle" aria-label="菜单">&#9776;</button>
+  <nav id="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">&#127978;</div>
+      <div class="brand-text">
+        <h1>零售柜管理</h1>
+        <small>校园无人零售柜云平台</small>
+      </div>
+    </div>
+    <ul class="sidebar-nav">
+      <li><a href="#dashboard" data-route="dashboard" class="active">
+        <span class="nav-icon">&#9632;</span> 仪表盘
+      </a></li>
+      <li><a href="#stock" data-route="stock">
+        <span class="nav-icon">&#9632;</span> 库存管理
+      </a></li>
+      <li><a href="#orders" data-route="orders">
+        <span class="nav-icon">&#9632;</span> 订单管理
+      </a></li>
+      <li><a href="#alerts" data-route="alerts">
+        <span class="nav-icon">&#9632;</span> 告警管理
+      </a></li>
+      <li><a href="#ctrl" data-route="ctrl">
+        <span class="nav-icon">&#9632;</span> 设备控制
+      </a></li>
+      <li><a href="#firmware" data-route="firmware">
+        <span class="nav-icon">&#9632;</span> OTA升级
+      </a></li>
+      <li><a href="#anomaly" data-route="anomaly">
+        <span class="nav-icon">&#9632;</span> 异常检测
+      </a></li>
+      <li><a href="#snapshot" data-route="snapshot">
+        <span class="nav-icon">&#9632;</span> 拍照记录
+      </a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <div class="mqtt-status offline" id="mqtt-status">MQTT 未连接</div>
+      <div class="footer-ver">v1.0 &copy; 2026</div>
+    </div>
+  </nav>
+
+  <!-- 主内容区 -->
+  <main id="view-container">
+    <div class="loading-splash">正在加载...</div>
+  </main>
+
+  <!-- Scripts -->
+  <script src="js/api.js?v=9"></script>
+  <script src="js/mqtt.js?v=9"></script>
+  <script src="js/router.js?v=9"></script>
+  <script src="js/render-dashboard.js?v=9"></script>
+  <script src="js/render-stock.js?v=9"></script>
+  <script src="js/render-orders.js?v=9"></script>
+  <script src="js/render-alerts.js?v=9"></script>
+  <script src="js/render-device-ctrl.js?v=9"></script>
+  <script src="js/render-firmware.js?v=9"></script>
+  <script src="js/render-snapshot.js?v=10"></script>
+  <script src="js/app.js?v=9"></script>
+</body>
+</html>

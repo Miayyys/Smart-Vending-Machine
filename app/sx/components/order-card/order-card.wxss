@@ -1,0 +1,196 @@
+/* components/order-card/order-card.wxss */
+.order-card {
+  background-color: var(--bg-color-white);
+  border-radius: 12rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  margin-bottom: 20rpx;
+  border: 1rpx solid var(--border-color);
+  transition: all 0.3s ease;
+}
+
+.order-card:active {
+  transform: scale(0.98);
+}
+
+.order-header {
+  padding: 30rpx;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.order-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.order-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10rpx;
+}
+
+.order-id {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: var(--text-color);
+}
+
+.order-time {
+  font-size: 24rpx;
+  color: var(--text-color-light);
+}
+
+.device-info {
+  margin-top: 10rpx;
+}
+
+.device-name {
+  font-size: 24rpx;
+  color: var(--text-color-secondary);
+}
+
+.order-amount {
+  margin-right: 20rpx;
+}
+
+.amount {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.order-status {
+  font-size: 24rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+}
+
+.order-status.primary {
+  color: var(--primary-color);
+  background-color: rgba(26, 173, 25, 0.1);
+}
+
+.order-status.warning {
+  color: var(--warning-color);
+  background-color: rgba(255, 149, 0, 0.1);
+}
+
+.order-status.error {
+  color: var(--error-color);
+  background-color: rgba(255, 59, 48, 0.1);
+}
+
+.order-status.light {
+  color: var(--text-color-light);
+  background-color: var(--bg-color-gray);
+}
+
+.divider {
+  height: 1rpx;
+  background-color: var(--border-color);
+  margin: 20rpx 30rpx;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: var(--text-color);
+  margin: 20rpx 30rpx;
+}
+
+.items-list {
+  margin: 0 30rpx;
+  border: 1rpx solid var(--border-color);
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 30rpx;
+  border-bottom: 1rpx solid var(--bg-color-gray);
+}
+
+.item-row:last-child {
+  border-bottom: none;
+}
+
+.item-name {
+  flex: 1;
+  font-size: 26rpx;
+  color: var(--text-color);
+}
+
+.item-qty {
+  font-size: 26rpx;
+  color: var(--text-color-secondary);
+  margin: 0 20rpx;
+}
+
+.item-price {
+  font-size: 26rpx;
+  color: var(--text-color);
+}
+
+.order-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 30rpx;
+  margin: 20rpx 30rpx 0;
+  border-top: 1rpx solid var(--border-color);
+}
+
+.total-label {
+  font-size: 28rpx;
+  color: var(--text-color-secondary);
+}
+
+.total-amount {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.order-meta {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 20rpx 30rpx 0;
+  gap: 30rpx;
+}
+
+.meta-item {
+  flex: 1;
+  min-width: 200rpx;
+}
+
+.meta-label {
+  font-size: 24rpx;
+  color: var(--text-color-secondary);
+  display: block;
+  margin-bottom: 6rpx;
+}
+
+.meta-value {
+  font-size: 24rpx;
+  color: var(--text-color);
+}
+
+.order-actions {
+  display: flex;
+  gap: 10rpx;
+  padding: 20rpx 30rpx;
+  border-top: 1rpx solid var(--border-color);
+}
+
+.order-actions .btn {
+  flex: 1;
+  font-size: 24rpx;
+  padding: 10rpx;
+}

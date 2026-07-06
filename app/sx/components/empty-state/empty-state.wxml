@@ -1,0 +1,27 @@
+<!--components/empty-state/empty-state.wxml-->
+<view class="empty-state" bindtap="onTap">
+  <!-- 图标 -->
+  <view class="empty-icon">
+    <text class="icon">{{icon}}</text>
+  </view>
+
+  <!-- 标题 -->
+  <view class="empty-title">
+    {{title}}
+  </view>
+
+  <!-- 描述 -->
+  <view class="empty-description" wx:if="{{description}}">
+    {{description}}
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="empty-action" wx:if="{{showAction}}">
+    <button
+      class="btn btn-{{actionType}} btn-small"
+      bindtap="onActionTap"
+      catchtap="true">
+      {{actionText}}
+    </button>
+  </view>
+</view>

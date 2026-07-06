@@ -1,0 +1,174 @@
+/* pages/order-detail/order-detail.wxss */
+.container {
+  min-height: 100vh;
+  background-color: var(--bg-color);
+  padding-bottom: 40rpx;
+}
+
+.status-banner {
+  background-color: var(--primary-color);
+  color: white;
+  text-align: center;
+  padding: 20rpx;
+  font-size: 28rpx;
+}
+
+.order-header {
+  margin: 20rpx;
+  padding: 40rpx;
+}
+
+.order-info {
+  margin-bottom: 30rpx;
+}
+
+.order-id {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: var(--text-color);
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.order-time {
+  font-size: 26rpx;
+  color: var(--text-color-secondary);
+  margin-bottom: 16rpx;
+  display: block;
+}
+
+.order-status {
+  display: inline-block;
+  font-size: 24rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+}
+
+.order-status.primary {
+  color: var(--primary-color);
+  background-color: rgba(26, 173, 25, 0.1);
+}
+
+.order-status.warning {
+  color: var(--warning-color);
+  background-color: rgba(255, 149, 0, 0.1);
+}
+
+.order-status.error {
+  color: var(--error-color);
+  background-color: rgba(255, 59, 48, 0.1);
+}
+
+.order-status.light {
+  color: var(--text-color-light);
+  background-color: var(--bg-color-gray);
+}
+
+.order-total {
+  text-align: right;
+}
+
+.total-label {
+  font-size: 26rpx;
+  color: var(--text-color-secondary);
+  display: block;
+}
+
+.total-amount {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.order-items {
+  margin: 20rpx;
+  padding: 40rpx;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: var(--text-color);
+  margin-bottom: 30rpx;
+}
+
+.items-list {
+  border: 1rpx solid var(--border-color);
+  border-radius: 8rpx;
+  overflow: hidden;
+}
+
+.item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 30rpx;
+  border-bottom: 1rpx solid var(--border-color);
+}
+
+.item-row:last-child {
+  border-bottom: none;
+}
+
+.item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.item-name {
+  font-size: 28rpx;
+  color: var(--text-color);
+  margin-bottom: 8rpx;
+}
+
+.item-price {
+  font-size: 24rpx;
+  color: var(--text-color-secondary);
+}
+
+.item-qty {
+  font-size: 26rpx;
+  color: var(--text-color-secondary);
+  margin: 0 20rpx;
+}
+
+.item-subtotal {
+  font-size: 28rpx;
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+.order-info {
+  margin: 20rpx;
+  padding: 40rpx;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.info-item:last-child {
+  margin-bottom: 0;
+}
+
+.info-label {
+  font-size: 26rpx;
+  color: var(--text-color-secondary);
+}
+
+.info-value {
+  font-size: 26rpx;
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+.order-actions {
+  margin: 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
