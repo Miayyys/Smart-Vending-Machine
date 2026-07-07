@@ -105,6 +105,11 @@
       return fetch(BASE + '/snapshot/background/upload', { method: 'POST', body: fd })
         .then(function (res) { if (!res.ok) return res.text().then(function (t) { throw new Error(t); }); return res.json(); });
     },
+
+    // ── 推理模型管理 ──
+    getModelActive() { return fetch('/api/model/active').then(function(r){return r.json();}); },
+    switchModel() { return fetch('/api/model/switch', {method:'POST'}).then(function(r){return r.json();}); },
+    toggleInference() { return fetch('/api/model/toggle', {method:'POST'}).then(function(r){return r.json();}); },
   };
 
   window.RetailApp = window.RetailApp || {};

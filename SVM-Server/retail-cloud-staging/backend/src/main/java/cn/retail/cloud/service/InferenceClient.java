@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -75,5 +76,38 @@ public class InferenceClient {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    /**
+     * 调推理服务做异物比对。
+     * @return Map 含 has_foreign (boolean) 和 alerts (list)；服务异常或不可用时返回 has_foreign=false
+     */
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> compare(String closeImage, String openImage,
+                                        String backgroundImage, List<Map<String, Object>> boxes) {
+        String url = healthUrl.replace("/health", "/compare");
+        try {
+            Map<String, Object> body = new java.util.HashMap<>();
+            body.put("close_image", closeImage);
+            body.put("open_image", openImage);
+            if (backgroundImage != null) body.put("background_image", backgroundImage);
+            body.put("boxes", boxes != null ? boxes : java.util.Collections.emptyList());
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> req = new HttpEntity<>(body, headers);
+            ResponseEntity<String> resp = rest.postForEntity(url, req, String.class);
+            if (resp.getStatusCode().is2xxSuccessful() && resp.getBody() != null) {
+                return M.readValue(resp.getBody(), Map.class);
+            }
+            log.warn("compare service returned {}: {}", resp.getStatusCode(), resp.getBody());
+        } catch (Exception e) {
+            log.error("compare call failed: {}", e.getMessage());
+        }
+        // 失败时不阻断主流程，按"无异物"处理
+        Map<String, Object> fallback = new java.util.HashMap<>();
+        fallback.put("success", false);
+        fallback.put("has_foreign", false);
+        return fallback;
     }
 }

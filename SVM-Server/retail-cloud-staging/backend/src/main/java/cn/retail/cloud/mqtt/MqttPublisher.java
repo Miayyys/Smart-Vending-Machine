@@ -57,6 +57,22 @@ public class MqttPublisher {
         try { if (client != null) client.close(); } catch (Exception ignored) {}
     }
 
+    /** 发布原始字符串到指定完整 topic，qos 默认 1，失败不抛 */
+    public void publishRaw(String topic, String payload, int qos) {
+        if (client == null || !client.isConnected()) {
+            log.debug("publishRaw skipped: publisher not connected");
+            return;
+        }
+        try {
+            MqttMessage msg = new MqttMessage(payload.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            msg.setQos(qos);
+            client.publish(topic, msg);
+            log.debug("mqtt publish topic={}", topic);
+        } catch (Exception e) {
+            log.warn("mqtt publishRaw failed: {}", e.getMessage());
+        }
+    }
+
     /** 发布一条 JSON 通知到 retail/{device}/{kind}/{sub}，失败不抛 */
     public void notify(String device, String kind, String sub, Object payload) {
         if (client == null || !client.isConnected()) {

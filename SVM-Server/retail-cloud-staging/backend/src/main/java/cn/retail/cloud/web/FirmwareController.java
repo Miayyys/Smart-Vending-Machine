@@ -39,6 +39,7 @@ public class FirmwareController {
     public Firmware upload(
             @RequestParam("file") MultipartFile file,
             @RequestParam("version") String version,
+            @RequestParam(value = "type", defaultValue = "firmware") String type,
             @RequestParam(value = "description", defaultValue = "") String description) throws Exception {
 
         // 保存文件
@@ -54,6 +55,7 @@ public class FirmwareController {
 
         Firmware fw = new Firmware();
         fw.setVersion(version);
+        fw.setType(type);
         fw.setFileName(fileName);
         fw.setFilePath(savedName);
         fw.setFileSize(file.getSize());

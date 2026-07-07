@@ -25,6 +25,10 @@ public class Firmware {
     @Column(length = 64)
     private String md5;
 
+    /** firmware 固件 / model 模型 */
+    @Column(length = 16)
+    private String type;
+
     @Column(length = 255)
     private String description;
 
@@ -43,6 +47,8 @@ public class Firmware {
     public void setFileSize(Long v){this.fileSize=v;}
     public String getMd5(){return md5;}
     public void setMd5(String v){this.md5=v;}
+    public String getType(){return type;}
+    public void setType(String v){this.type=v;}
     public String getDescription(){return description;}
     public void setDescription(String v){this.description=v;}
     public LocalDateTime getCreateTime(){return createTime;}

@@ -17,7 +17,9 @@
         // 筛选条
         '<div class="ctrl-panel">' +
           '<h3>拍照记录 <button class="btn btn-xs" id="snap-refresh-btn">刷新</button> ' +
-          '<span class="text-muted" style="font-size:12px;">每 30 秒自动刷新</span></h3>' +
+          '<span class="text-muted" style="font-size:12px;">每 30 秒自动刷新</span>' +
+          ' <button class="btn btn-xs" id="model-switch-btn" style="margin-left:12px;">模型: 加载中</button>' +
+          ' <button class="btn btn-xs" id="infer-toggle-btn">推理: 加载中</button></h3>' +
           '<div class="snap-filter">' +
             '<label>柜子 ' +
               '<select id="snap-cab">' +
@@ -46,7 +48,7 @@
           '<details><summary style="cursor:pointer;color:#64748b;">设备端上传说明（演示用，点击展开）</summary>' +
           '<div style="margin-top:8px;font-size:12px;color:#64748b;font-family:var(--font-mono);">' +
             '设备用 token 免 Basic Auth 上传：<br>' +
-            '<code>curl -sk -F "token=&lt;your-token&gt;" -F "deviceId=D01-F1" -F "floor=1" -F "doorAction=OPEN" -F "file=@x.jpg" https://&lt;server&gt;/api/snapshot/upload</code>' +
+            '<code>curl -sk -F "token=<your-token>" -F "deviceId=D01-F1" -F "floor=1" -F "doorAction=OPEN" -F "file=@x.jpg" https://<server>/api/snapshot/upload</code>' +
           '</div></details>' +
         '</div>' +
       '</div>';
@@ -56,6 +58,40 @@
     document.getElementById('snap-clear-btn').addEventListener('click', clearAll);
     document.getElementById('snap-cab').addEventListener('change', loadList);
     document.getElementById('snap-act').addEventListener('change', loadList);
+
+    // 模型选择 + 推理开关
+    var switchBtn = document.getElementById('model-switch-btn');
+    var toggleBtn = document.getElementById('infer-toggle-btn');
+
+    function refreshModelLabel() {
+      API.getModelActive().then(function(d){
+        switchBtn.textContent = '模型: ' + d.model_label;
+        toggleBtn.textContent = '推理: ' + (d.enabled ? '开' : '关');
+        toggleBtn.className = 'btn btn-xs ' + (d.enabled ? 'btn-success' : 'btn-warning');
+      }).catch(function(){});
+    }
+
+    switchBtn.addEventListener('click', function(){
+      switchBtn.disabled = true;
+      API.switchModel().then(function(d){
+        App.showToast('已切换: ' + d.label, 'success');
+        refreshModelLabel();
+      }).catch(function(err){
+        App.showToast('切换失败: ' + err.message, 'error');
+      }).finally(function(){ switchBtn.disabled = false; });
+    });
+
+    toggleBtn.addEventListener('click', function(){
+      toggleBtn.disabled = true;
+      API.toggleInference().then(function(d){
+        App.showToast('服务器推理已' + (d.enabled ? '开启' : '关闭'), 'success');
+        refreshModelLabel();
+      }).catch(function(err){
+        App.showToast('切换失败: ' + err.message, 'error');
+      }).finally(function(){ toggleBtn.disabled = false; });
+    });
+
+    refreshModelLabel();
 
     // MQTT 实时通知：后端上传成功后会发 retail/{dev}/event/snapshot → 即时刷新
     var onSnapshot = function (topic, data) {
@@ -103,18 +139,53 @@
             : s.doorAction === 'SYNC'
             ? '<span style="color:#2563eb;">同步</span>'
             : '<span style="color:#ea580c;">关门</span>';
-          // 解析检测结果
+          // 解析检测结果 — 按 source 分色：硬件=绿、服务器=灰、已关闭推理=黄
           var detectHtml = '';
           if (s.detectionData) {
             try {
               var det = typeof s.detectionData === 'string' ? JSON.parse(s.detectionData) : s.detectionData;
-              if (det.success && det.counts) {
-                var parts = [];
-                Object.keys(det.counts).forEach(function (k) {
-                  if (det.counts[k] > 0) parts.push(k + ':' + det.counts[k]);
+              var source = det.source || '';
+              var counts = det.counts || {};
+
+              // 推理已关闭
+              if (source === 'server' && det.enabled === false) {
+                detectHtml = '<span style="font-size:11px;color:#f59e0b;">已关闭推理</span>';
+              }
+              // 硬件检测
+              else if (source === 'hardware') {
+                var hwParts = [];
+                Object.keys(counts).forEach(function (k) {
+                  if (counts[k] > 0) hwParts.push(k + ':' + counts[k]);
                 });
-                detectHtml = '<span style="font-size:11px;color:#16a34a;" title="' + (det.processedMs || 0).toFixed(0) + 'ms">' +
-                  (parts.length ? parts.join(' ') : '无') + '</span>';
+                detectHtml = '<span style="font-size:11px;color:#16a34a;" title="硬件检测' + (det.batch_id ? ' batch:' + det.batch_id : '') + '">' +
+                  (hwParts.length ? hwParts.join(' ') : '无') + ' 🔧</span>';
+              }
+              // 服务器兜底
+              else if (source === 'server' && det.success && counts) {
+                var srvParts = [];
+                Object.keys(counts).forEach(function (k) {
+                  if (counts[k] > 0) srvParts.push(k + ':' + counts[k]);
+                });
+                detectHtml = '<span style="font-size:11px;color:#64748b;" title="' + (det.processedMs || 0).toFixed(0) + 'ms">' +
+                  (srvParts.length ? srvParts.join(' ') : '无') + ' ☁</span>';
+              }
+              // 兜底补单（硬件超时，用服务器结果代替）
+              else if (source === 'server_fallback') {
+                var fbParts = [];
+                Object.keys(counts).forEach(function (k) {
+                  if (counts[k] > 0) fbParts.push(k + ':' + counts[k]);
+                });
+                detectHtml = '<span style="font-size:11px;color:#ea580c;" title="硬件超时，服务器兜底补单">' +
+                  (fbParts.length ? fbParts.join(' ') : '无') + ' ⏰</span>';
+              }
+              // 兼容旧数据（无 source 字段）
+              else if (det.success && counts) {
+                var oldParts = [];
+                Object.keys(counts).forEach(function (k) {
+                  if (counts[k] > 0) oldParts.push(k + ':' + counts[k]);
+                });
+                detectHtml = '<span style="font-size:11px;color:#16a34a;">' +
+                  (oldParts.length ? oldParts.join(' ') : '无') + '</span>';
               } else if (det.error) {
                 detectHtml = '<span style="font-size:11px;color:#dc2620;" title="' + det.error + '">失败</span>';
               } else {

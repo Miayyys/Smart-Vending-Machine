@@ -14,7 +14,10 @@
       '<div class="fw-view">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;">' +
           '<h3>OTA 升级</h3>' +
-          '<div><button class="btn btn-sm" id="model-switch-btn">服务器识别模型: 加载中</button></div>' +
+          '<div>' +
+            '<button class="btn btn-sm" id="model-switch-btn">服务器识别模型: 加载中</button> ' +
+            '<button class="btn btn-sm" id="infer-toggle-btn" style="margin-left:4px;">服务器推理: 加载中</button>' +
+          '</div>' +
         '</div>' +
         // 上半部分：固件列表 + 上传
         '<div class="fw-top">' +
@@ -79,22 +82,38 @@
     document.getElementById('ota-firmware').addEventListener('change', updateOtaPreview);
     document.getElementById('ota-cabinet').addEventListener('change', updateOtaPreview);
 
-    // 服务器识别模型切换按钮（演示用）
+    // 服务器识别模型切换 + 推理开关按钮
     var switchBtn = document.getElementById('model-switch-btn');
+    var toggleBtn = document.getElementById('infer-toggle-btn');
+
     function refreshModelLabel() {
       fetch('/api/model/active').then(function(r){return r.json();}).then(function(d){
-        switchBtn.textContent = '服务器识别模型: ' + (d.model === 'cross' ? '3类(交叉验证用)' : '4类(主模型)');
+        switchBtn.textContent = '服务器识别模型: ' + d.model_label;
+        toggleBtn.textContent = '服务器推理: ' + (d.enabled ? '开' : '关');
+        toggleBtn.className = 'btn btn-sm ' + (d.enabled ? 'btn-success' : 'btn-warning');
       }).catch(function(){});
     }
+
     switchBtn.addEventListener('click', function(){
       switchBtn.disabled = true;
       fetch('/api/model/switch', {method:'POST'}).then(function(r){return r.json();}).then(function(d){
-        App.showToast('已切换到: ' + (d.model === 'cross' ? '3类交叉模型' : '4类主模型'), 'success');
+        App.showToast('已切换到: ' + d.label, 'success');
         refreshModelLabel();
       }).catch(function(err){
         App.showToast('切换失败: ' + err.message, 'error');
       }).finally(function(){ switchBtn.disabled = false; });
     });
+
+    toggleBtn.addEventListener('click', function(){
+      toggleBtn.disabled = true;
+      fetch('/api/model/toggle', {method:'POST'}).then(function(r){return r.json();}).then(function(d){
+        App.showToast('服务器推理已' + (d.enabled ? '开启' : '关闭'), 'success');
+        refreshModelLabel();
+      }).catch(function(err){
+        App.showToast('切换失败: ' + err.message, 'error');
+      }).finally(function(){ toggleBtn.disabled = false; });
+    });
+
     refreshModelLabel();
 
     loadFirmwareList();

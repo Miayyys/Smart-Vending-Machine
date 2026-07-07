@@ -11,6 +11,8 @@ import java.util.List;
 public interface OrderInfoRepository extends JpaRepository<OrderInfo, Long> {
     List<OrderInfo> findByDeviceIdOrderByCreateTimeDesc(String deviceId);
 
+    List<OrderInfo> findAllByOrderByIdDesc();
+
     @Modifying
     @Query("delete from OrderInfo o where o.createTime < ?1")
     int deleteByCreateTimeBefore(LocalDateTime cutoff);

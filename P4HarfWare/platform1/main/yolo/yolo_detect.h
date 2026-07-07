@@ -62,6 +62,15 @@ bool yolo_is_ready(void);
  */
 void model_otadata_mark_active(int slot);
 
+/**
+ * @brief 验证指定槽的模型能否加载（不替换当前活跃模型）。
+ * 用于 OTA 切槽前完整性验证：写入新分区后调用此函数，确认
+ * 新模型可被 dl::Model 解析, 失败则不切激活槽 (回退到旧模型)。
+ * @param slot 0=model_0, 1=model_1
+ * @return ESP_OK 可加载, ESP_FAIL 不可加载
+ */
+esp_err_t yolo_verify_slot(int slot);
+
 #ifdef __cplusplus
 }
 #endif

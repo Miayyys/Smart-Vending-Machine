@@ -19,6 +19,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -42,6 +44,8 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/snapshot")
 public class SnapshotController {
+
+    private static final Logger log = LoggerFactory.getLogger(SnapshotController.class);
 
     private final SnapshotRepository snapRepo;
     private final DeviceTokenRepository tokenRepo;
@@ -98,8 +102,8 @@ public class SnapshotController {
             return ResponseEntity.badRequest().body(Map.of("error", "invalid floor"));
         }
         String act = doorAction == null ? "" : doorAction.trim().toUpperCase();
-        if (!act.equals("OPEN") && !act.equals("CLOSE")) {
-            return ResponseEntity.badRequest().body(Map.of("error", "doorAction must be OPEN or CLOSE"));
+        if (!act.equals("OPEN") && !act.equals("CLOSE") && !act.equals("SYNC")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "doorAction must be OPEN, CLOSE or SYNC"));
         }
 
         try {
@@ -197,6 +201,56 @@ public class SnapshotController {
             all = all.stream().filter(s -> floor.equals(s.getFloor())).toList();
         }
         return all.stream().limit(Math.max(limit, 1)).toList();
+    }
+
+    // ===================== 背景图（异物检测基线） =====================
+
+    @PostMapping("/background/upload")
+    public ResponseEntity<?> uploadBackground(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("token") String token,
+            @RequestParam("deviceId") String deviceId) {
+        // token 校验
+        if (token == null || token.isBlank())
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "missing token"));
+        Optional<DeviceToken> tk = tokenRepo.findByTokenAndEnabledTrue(token.trim());
+        if (tk.isEmpty())
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "invalid token"));
+        if (!deviceId.equals(tk.get().getDeviceId()))
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "token not for this device"));
+        if (file == null || file.isEmpty())
+            return ResponseEntity.badRequest().body(Map.of("error", "empty file"));
+
+        try {
+            String safeDev = deviceId.replaceAll("[^A-Za-z0-9_-]", "");
+            String savedName = "background_" + safeDev + ".jpg";
+            Path dest = storageDir.resolve(savedName);
+            try (InputStream in = file.getInputStream()) {
+                Files.copy(in, dest, StandardCopyOption.REPLACE_EXISTING);
+            }
+            log.info("background saved device={} path={}", deviceId, savedName);
+            return ResponseEntity.ok(Map.of("success", true, "deviceId", deviceId, "path", savedName));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "save failed: " + e.getMessage()));
+        }
+    }
+
+    @GetMapping("/background/{deviceId}")
+    public ResponseEntity<?> getBackground(@PathVariable String deviceId,
+                                            @RequestParam(defaultValue = "false") boolean file) {
+        String safeDev = deviceId.replaceAll("[^A-Za-z0-9_-]", "");
+        Path p = storageDir.resolve("background_" + safeDev + ".jpg");
+        boolean exists = Files.exists(p);
+        if (file) {
+            if (!exists) return ResponseEntity.notFound().build();
+            Resource resource = new FileSystemResource(p);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.IMAGE_JPEG)
+                    .header(HttpHeaders.CACHE_CONTROL, "no-store")
+                    .body(resource);
+        }
+        return ResponseEntity.ok(Map.of("exists", exists));
     }
 
     // ===================== 图片流（Basic Auth 保护，供前端 <img>） =====================

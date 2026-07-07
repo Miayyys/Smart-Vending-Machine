@@ -4,6 +4,7 @@ import cn.retail.cloud.entity.OrderInfo;
 import cn.retail.cloud.entity.OrderItem;
 import cn.retail.cloud.service.AlertService;
 import cn.retail.cloud.service.CleanupService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -54,6 +55,16 @@ public class OrderController {
     public Map<String,Object> clearOrders() {
         int n = cleanupService.clearAllOrders();
         return Map.of("deleted", n);
+    }
+
+    /** 更新订单：支持修改 userId 和/或 payStatus */
+    @PostMapping("/{id}/update")
+    public ResponseEntity<?> updateOrder(@PathVariable Long id, @RequestBody Map<String,Object> body) {
+        String userId = (String) body.get("userId");
+        String payStatus = (String) body.get("payStatus");
+        return alertService.updateOrder(id, userId, payStatus)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     private static Long toLong(Object o){return o==null?null:Long.valueOf(o.toString());}

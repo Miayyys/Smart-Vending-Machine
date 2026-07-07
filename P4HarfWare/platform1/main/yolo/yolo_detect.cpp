@@ -121,6 +121,45 @@ extern "C" esp_err_t yolo_init(void)
 
 extern "C" bool yolo_is_ready(void) { return s_model != nullptr; }
 
+/**
+ * @brief 验证指定槽的 .espdl 模型能否被 dl::Model 成功加载。
+ * 只做尝试性加载并立即释放，不替换当前活跃模型 (s_model/s_pre/s_post 不受影响)。
+ * @return ESP_OK 模型可加载; ESP_FAIL 不可加载 (分区空/格式错/模型不兼容)
+ */
+extern "C" esp_err_t yolo_verify_slot(int slot)
+{
+    if (slot < 0 || slot > 1) return ESP_FAIL;
+    const char *part_name = (slot == 0) ? "model_0" : "model_1";
+    esp_partition_subtype_t stype = (slot == 0) ? MODEL_0_TYPE : MODEL_1_TYPE;
+
+    const esp_partition_t *part = esp_partition_find_first(
+        ESP_PARTITION_TYPE_DATA, stype, part_name);
+    if (!part) { ESP_LOGE(TAG, "verify: %s not found", part_name); return ESP_FAIL; }
+
+    // 快速空分区检查
+    uint8_t magic[4];
+    if (esp_partition_read(part, 0, magic, 4) != ESP_OK) {
+        ESP_LOGE(TAG, "verify: %s read failed", part_name); return ESP_FAIL;
+    }
+    if (magic[0] == 0xFF && magic[1] == 0xFF && magic[2] == 0xFF && magic[3] == 0xFF) {
+        ESP_LOGE(TAG, "verify: %s is empty", part_name); return ESP_FAIL;
+    }
+
+    // 独立加载验证, 不动全局 s_model
+    auto *trial = new (std::nothrow) dl::Model(part_name,
+        fbs::MODEL_LOCATION_IN_FLASH_PARTITION, 0,
+        dl::MEMORY_MANAGER_GREEDY, nullptr, false);
+    if (!trial) { ESP_LOGE(TAG, "verify: %s alloc failed", part_name); return ESP_FAIL; }
+
+    trial->minimize();
+    auto *in = trial->get_input();
+    esp_err_t ret = (in && in->get_size() > 0) ? ESP_OK : ESP_FAIL;
+    if (ret != ESP_OK) ESP_LOGE(TAG, "verify: %s failed to get input", part_name);
+
+    delete trial;
+    return ret;
+}
+
 // ── Public API ──────────────────────────────────────────────
 
 extern "C" esp_err_t yolo_detect(uint8_t *rgb565, int width, int height,

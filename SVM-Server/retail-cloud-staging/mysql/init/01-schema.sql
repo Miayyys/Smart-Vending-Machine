@@ -175,4 +175,4 @@ CREATE TABLE IF NOT EXISTS `device_token` (
 
 -- 种子：D01/D02 的上传 token（联调用，正式上线请轮换）
 INSERT IGNORE INTO `device_token` (`token`,`device_id`,`enabled`) VALUES
- ('snap_dev_D01_2026','D01-F1',1);
+ ('<your-snapshot-token>','D01-F1',1);

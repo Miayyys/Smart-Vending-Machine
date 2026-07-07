@@ -1,6 +1,9 @@
 # ONNX Runtime 推理服务 — 轻量，镜像 ~400MB
 FROM python:3.11-slim-bookworm
 
+# 阿里云 APT 镜像源
+RUN sed -i "s|deb.debian.org|mirrors.aliyun.com|g" /etc/apt/sources.list.d/debian.sources
+
 WORKDIR /app
 
 RUN apt-get update -qq \
@@ -9,7 +12,7 @@ RUN apt-get update -qq \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt
 
 COPY config.py .
 COPY server_onnx.py server.py

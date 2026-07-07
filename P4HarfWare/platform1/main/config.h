@@ -27,6 +27,9 @@ constexpr const char *SNAP_TOKEN = "your-snapshot-token";
 constexpr const char *MQTT_USERNAME = "retail_device";
 constexpr const char *MQTT_PASSWORD = "your-mqtt-password";
 
+// OTA download Basic Auth password (与 nginx .htpasswd 一致)
+constexpr const char *OTA_AUTH_PASSWORD = "your-ota-password";
+
 // Topic prefix (macro for compile-time string concatenation)
 #define MQTT_TOPIC_PREFIX "retail/" DEVICE_ID
 

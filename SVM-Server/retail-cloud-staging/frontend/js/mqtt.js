@@ -6,10 +6,9 @@
 (function () {
   'use strict';
 
-  // 部署时修改为实际 MQTT 账号密码（需与 EMQX 配置一致）
   const MQTT_USERNAME = 'retail_ui';
-  const MQTT_PASSWORD = 'your-mqtt-password';
-  const TOPICS = ['retail/+/event/stock_detected', 'retail/+/event/ota_progress', 'retail/+/event/anomaly', 'retail/+/msg/err'];
+  const MQTT_PASSWORD = '<your-mqtt-ui-password>';
+  const TOPICS = ['retail/+/event/#'];
 
   const listeners = {}; // { topicPattern: [callback] }
 

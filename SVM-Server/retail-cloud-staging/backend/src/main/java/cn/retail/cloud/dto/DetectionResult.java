@@ -22,6 +22,9 @@ public class DetectionResult {
     private double processedMs;
     private String error;
 
+    /** 检测来源: "server" | "hardware"。推理服务不返回此字段，后端自己填充。 */
+    private String source;
+
     // ---- getters / setters ----
     public boolean isSuccess() { return success; }
     public void setSuccess(boolean v) { this.success = v; }
@@ -43,6 +46,8 @@ public class DetectionResult {
 
     public String getError() { return error; }
     public void setError(String v) { this.error = v; }
+    public String getSource() { return source; }
+    public void setSource(String v) { this.source = v; }
 
     // ---- nested ----
     @JsonIgnoreProperties(ignoreUnknown = true)

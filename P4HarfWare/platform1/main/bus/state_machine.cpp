@@ -15,6 +15,7 @@
 #include "esp_ota_ops.h"
 #include "esp_partition.h"
 #include "esp_http_client.h"
+#include "esp_rom_md5.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
@@ -39,10 +40,6 @@ static cabinet_state_t s_prev_state = CABINET_LOCKED; // 异常前状态
 static esp_timer_handle_t s_anomaly_timer = nullptr;
 static esp_timer_handle_t s_door_open_timer = nullptr; // 开门超时
 
-// OTA download credentials — 部署时修改为服务器 Basic Auth 密码
-// 需与 nginx .htpasswd 一致, 或改为设备 token 方式下载
-static constexpr const char *OTA_AUTH_PASSWORD = "your-ota-password";
-
 // 自签名服务器证书（由 CMakeLists.txt 的 EMBED_TXTFILES 嵌入）
 extern const char server_cert_pem_start[] asm("_binary_server_cert_pem_start");
 extern const char server_cert_pem_end[]   asm("_binary_server_cert_pem_end");
@@ -56,11 +53,12 @@ static void gen_batch_id(void)
 }
 static const char *pid_to_label(int pid)
 {
+    // 与 data.yaml 的 names 顺序一致: 0=nongfu, 1=runtian, 2=soda, 3=yogurt(4类模型)
     switch (pid) {
+        case 0:  return "nongfu";
+        case 1:  return "runtian";
         case 2:  return "soda";
-        case 6:  return "nongfu";
-        case 7:  return "runtian";
-        case 8:  return "yogurt";
+        case 3:  return "yogurt";
         default: return "unknown";
     }
 }
@@ -328,10 +326,67 @@ static void handle_door_event(app_event_id_t evt)
 }
 
 // ── OTA task ───────────────────────────────────────────────────
+// OTA 下载参数: url + 可选的 md5（来自 MQTT 指令的 md5 字段，hex 字符串，32 位小写）
+// md5 为空字符串表示不校验完整性（不推荐，但保留兼容）。
+typedef struct {
+    char url[512];
+    char md5[33];   // 32 hex + '\0'
+} ota_params_t;
+
+// 把字节流送入 ROM MD5 context, 下载完校验 hex 摘要。
+// 返回 true = 校验通过 (或 md5 为空跳过)
+static bool ota_verify_md5(md5_context_t *ctx, const char *expected_hex) {
+    if (!expected_hex || expected_hex[0] == 0) return true; // 无预期值, 跳过
+    uint8_t digest[16];
+    esp_rom_md5_final(digest, ctx);
+    char hex[33];
+    for (int i = 0; i < 16; ++i)
+        snprintf(hex + i*2, 3, "%02x", digest[i]);
+    hex[32] = 0;
+    if (strcasecmp(hex, expected_hex) != 0) {
+        ESP_LOGE(TAG, "MD5 mismatch: got=%s expected=%s", hex, expected_hex);
+        return false;
+    }
+    ESP_LOGI(TAG, "MD5 OK: %s", hex);
+    return true;
+}
+
+// 从 MQTT JSON 中解析 url 和 md5 (md5 字段可选)
+static ota_params_t *ota_parse_params(const char *data) {
+    auto *p = new (std::nothrow) ota_params_t{};
+    if (!p) return nullptr;
+    p->md5[0] = 0;
+    // url
+    auto *u = strstr(data, "\"url\"");
+    if (!u) { delete p; return nullptr; }
+    u = strchr(u, ':'); u = strchr(u, '"');
+    if (!u) { delete p; return nullptr; }
+    snprintf(p->url, sizeof(p->url), "%s", u + 1);
+    char *q = strchr(p->url, '"'); if (q) *q = 0;
+    // 相对路径补全
+    if (p->url[0] == '/') {
+        char full[576];
+        snprintf(full, sizeof(full), "https://%s%s", SERVER_HOST, p->url);
+        strlcpy(p->url, full, sizeof(p->url));
+    }
+    // md5 (可选)
+    auto *m = strstr(data, "\"md5\"");
+    if (m) {
+        m = strchr(m, ':'); m = strchr(m, '"');
+        if (m) {
+            snprintf(p->md5, sizeof(p->md5), "%s", m + 1);
+            char *e = strchr(p->md5, '"'); if (e) *e = 0;
+        }
+    }
+    return p;
+}
+
 static void ota_task(void *arg)
 {
-    auto *url = static_cast<const char *>(arg);
-    ESP_LOGI(TAG, "Firmware OTA from: %s", url);
+    auto *params = static_cast<ota_params_t *>(arg);
+    const char *url = params->url;
+    const char *expected_md5 = params->md5;
+    ESP_LOGI(TAG, "Firmware OTA from: %s (md5=%s)", url, expected_md5[0] ? expected_md5 : "skip");
 
     mqtt_report(MQTT_TOPIC_OTA_PROGRESS,
         R"({"type":"firmware","version":"","status":"downloading","progress":0,"message":""})");
@@ -339,12 +394,12 @@ static void ota_task(void *arg)
     esp_ota_handle_t ota_handle = 0;
 
     // lambda 统一失败退出
-    auto fail = [url](const char *msg) {
+    auto fail = [params](const char *msg) {
         ESP_LOGE(TAG, "%s", msg);
         mqtt_report(MQTT_TOPIC_OTA_PROGRESS,
             R"({"type":"firmware","version":"","status":"failed","progress":0,"message":"%s"})", msg);
-        rgb_set_state(CABINET_LOCKED); // 恢复待机灯
-        free(const_cast<char *>(url));
+        rgb_set_state(CABINET_LOCKED); // 恢复待机灯, 旧固件未切换继续运行
+        delete params;
         vTaskDelete(nullptr);
     };
 
@@ -402,6 +457,10 @@ static void ota_task(void *arg)
     auto *buf = (uint8_t *)heap_caps_malloc(32768, MALLOC_CAP_SPIRAM);
     if (!buf) return fail("OOM for download buffer");
 
+    // MD5 边下边算
+    md5_context_t md5ctx;
+    esp_rom_md5_init(&md5ctx);
+
     int total_read = 0;
     int last_pct = -1;
     int64_t t0 = esp_timer_get_time();
@@ -422,6 +481,7 @@ static void ota_task(void *arg)
             esp_http_client_cleanup(client);
             return fail("esp_ota_write failed");
         }
+        esp_rom_md5_update(&md5ctx, buf, r);
         total_read += r;
 
         int pct = total_read * 100 / content_len;
@@ -439,11 +499,24 @@ static void ota_task(void *arg)
     free(buf);
     esp_http_client_cleanup(client);
 
+    // 完整性 1: 下载字节数必须等于 content_len, 否则截断
+    if (total_read != content_len) {
+        esp_ota_abort(ota_handle);
+        ESP_LOGE(TAG, "Download truncated: %d/%d", total_read, content_len);
+        return fail("Download size mismatch (truncated)");
+    }
+
     // 4. 完成 OTA，切换启动分区
     err = esp_ota_end(ota_handle);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "ota_end: %s", esp_err_to_name(err));
         return fail("esp_ota_end failed");
+    }
+
+    // 完整性 2: MD5 校验。失败则不切换分区, 旧固件继续运行 (ESP-IDF bootloader 也有回退保底)
+    if (!ota_verify_md5(&md5ctx, expected_md5)) {
+        // 分区已被写过, 但未 set_boot_partition, 重启仍跑旧分区
+        return fail("MD5 verification failed, keep old firmware");
     }
 
     err = esp_ota_set_boot_partition(update_part);
@@ -462,13 +535,15 @@ static void ota_task(void *arg)
 // ── Model partition update task ──────────────────────────────────
 static void model_task(void *arg)
 {
-    auto *url = static_cast<const char *>(arg);
-    ESP_LOGI(TAG, "Model update from: %s", url);
+    auto *params = static_cast<ota_params_t *>(arg);
+    const char *url = params->url;
+    const char *expected_md5 = params->md5;
+    ESP_LOGI(TAG, "Model update from: %s (md5=%s)", url, expected_md5[0] ? expected_md5 : "skip");
 
     mqtt_report(MQTT_TOPIC_OTA_PROGRESS,
         R"({"type":"model","version":"","status":"downloading","progress":0,"message":""})");
 
-    rgb_set_state(CABINET_ANALYZING); // OTA 进行中→黄灯 // OTA进行中→紫灯
+    rgb_set_state(CABINET_ANALYZING); // OTA 进行中→黄灯
 
     esp_http_client_config_t http{};
     http.url                          = url;
@@ -485,19 +560,19 @@ static void model_task(void *arg)
         ESP_LOGE(TAG, "HTTP client init failed");
         mqtt_report(MQTT_TOPIC_OTA_PROGRESS,
             R"({"type":"model","version":"","status":"failed","progress":0,"message":"HTTP client init failed"})");
-        free(const_cast<char *>(url));
+        delete params;
         vTaskDelete(nullptr);
         return;
     }
 
-    // lambda 统一清理退出（带失败上报）
-    auto quit = [client, url](const char *reason) {
+    // lambda 统一清理退出（带失败上报, 不切激活槽）
+    auto quit = [client, params](const char *reason) {
         ESP_LOGE(TAG, "%s", reason);
         mqtt_report(MQTT_TOPIC_OTA_PROGRESS,
             R"({"type":"model","version":"","status":"failed","progress":0,"message":"%s"})", reason);
         rgb_set_state(CABINET_LOCKED);
     esp_http_client_cleanup(client);
-        free(const_cast<char *>(url));
+        delete params;
         vTaskDelete(nullptr);
     };
 
@@ -535,9 +610,13 @@ static void model_task(void *arg)
     if (esp_partition_erase_range(part, 0, part->size) != ESP_OK)
         return quit("Erase target failed");
 
-    // Download + write loop
+    // Download + write loop (边下边算 MD5)
     auto *buf = (uint8_t *)heap_caps_malloc(32768, MALLOC_CAP_SPIRAM);
     if (!buf) return quit("OOM for download buffer");
+
+    md5_context_t md5ctx;
+    esp_rom_md5_init(&md5ctx);
+
     int total_read = 0;
     size_t write_off = 0;
     int last_pct = -1;
@@ -550,6 +629,7 @@ static void model_task(void *arg)
             free(buf);
             return quit("Write to target failed");
         }
+        esp_rom_md5_update(&md5ctx, buf, r);
         total_read += r;
         write_off += r;
 
@@ -563,15 +643,25 @@ static void model_task(void *arg)
         }
     }
 
-    if (total_read != content_len) {
-        free(buf);
-        return quit("Download size mismatch");
-    }
-
     free(buf);
     esp_http_client_cleanup(client);
 
-    // ── 切换激活槽 ──
+    if (total_read != content_len)
+        return quit("Download size mismatch");
+
+    // 完整性校验: MD5, 协议中给定则必须匹配
+    if (!ota_verify_md5(&md5ctx, expected_md5)) {
+        ESP_LOGE(TAG, "Model MD5 mismatch, new model NUKED — keep old slot active");
+        return quit("MD5 verification failed");
+    }
+
+    // 可加载性校验: 在切激活槽前验证新模型能被 dl::Model 加载
+    if constexpr (YOLO_ENABLED) {
+        if (yolo_verify_slot(target_slot) != ESP_OK)
+            return quit("Model load verification failed, keep old model");
+    }
+
+    // ── 全通过, 切激活槽 ──
     uint8_t new_flag = (target_slot == 1) ? 1 : 0;
     esp_partition_erase_range(ota, 0, ota->size);
     esp_partition_write(ota, 0, &new_flag, 1);
@@ -616,8 +706,21 @@ static void bus_event(void *, esp_event_base_t, int32_t id, void *data)
         cabinet_photo_cycle("SYNC");
         break;
     case APP_EVT_CMD_OTA: {
-        auto *url = data ? static_cast<char *>(strdup(static_cast<evt_ota_t *>(data)->url)) : nullptr;
-        if (url) xTaskCreate(ota_task, "ota", 8192, url, 5, nullptr);
+        auto *ota = static_cast<evt_ota_t *>(data);
+        auto *params = new (std::nothrow) ota_params_t{};
+        if (params && ota && ota->url) {
+            snprintf(params->url, sizeof(params->url), "%s", ota->url);
+            // 相对路径补全
+            if (params->url[0] == '/') {
+                char full[576];
+                snprintf(full, sizeof(full), "https://%s%s", SERVER_HOST, params->url);
+                strlcpy(params->url, full, sizeof(params->url));
+            }
+            if (ota->md5) snprintf(params->md5, sizeof(params->md5), "%s", ota->md5);
+            xTaskCreate(ota_task, "ota", 8192, params, 5, nullptr);
+        } else {
+            delete params;
+        }
         break;
     }
     case APP_EVT_CMD_ANOMALY: {
@@ -656,28 +759,15 @@ static void on_mqtt_msg(const char *topic, const char *data, int)
     else if (strcmp(action, "reboot")  == 0) esp_event_post(APP_BUS, APP_EVT_CMD_REBOOT,  nullptr, 0, 0);
     else if (strcmp(action, "sync")    == 0) esp_event_post(APP_BUS, APP_EVT_CMD_SYNC,    nullptr, 0, 0);
     else if (strcmp(action, "ota")     == 0) {
-        // type: "firmware"(默认) / "model"
+        // type: "firmware"(默认) / "model"; ota_parse_params 解析 url + md5
         bool is_model = (strstr(data, "\"type\":\"model\"") != NULL)
                      || (strstr(data, "\"type\": \"model\"") != NULL);
-        auto *p = strstr(data, "\"url\"");
-        if (p) {
-            p = strchr(p, ':');
-            p = strchr(p, '"');
-            if (p) {
-                char url[512];
-                snprintf(url, sizeof(url), "%s", p + 1);
-                auto *q = strchr(url, '"');
-                if (q) *q = 0;
-                if (url[0]) {
-                    char full[576];
-                    if (url[0] == '/')
-                        snprintf(full, sizeof(full), "https://%s%s", SERVER_HOST, url);
-                    else
-                        snprintf(full, sizeof(full), "%s", url);
-                    xTaskCreate(is_model ? model_task : ota_task,
-                        is_model ? "model" : "ota", 8192, strdup(full), 5, nullptr);
-                }
-            }
+        auto *params = ota_parse_params(data);
+        if (params) {
+            xTaskCreate(is_model ? model_task : ota_task,
+                is_model ? "model" : "ota", 8192, params, 5, nullptr);
+        } else {
+            ESP_LOGW(TAG, "OTA: failed to parse url from payload");
         }
     }
     else if (strcmp(action, "err") == 0) {

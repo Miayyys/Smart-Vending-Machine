@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
 # esp-dl neural network inference library
-list(APPEND EXTRA_COMPONENT_DIRS "/home/loser/SoftWare/esp-dl/esp-dl")
+list(APPEND EXTRA_COMPONENT_DIRS "/path/to/esp-dl/esp-dl")
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(wifi_test)

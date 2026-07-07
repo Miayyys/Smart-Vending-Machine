@@ -127,4 +127,18 @@ public class AlertService {
     public List<OrderItem> listOrderItems(Long orderId) {
         return orderItemRepo.findByOrderId(orderId);
     }
+
+    @Transactional
+    public Optional<OrderInfo> updateOrder(Long id, String userId, String payStatus) {
+        return orderRepo.findById(id).map(o -> {
+            if (userId != null) o.setUserId(userId);
+            if (payStatus != null) {
+                o.setPayStatus(payStatus);
+                if ("PAID".equals(payStatus) && o.getSettleTime() == null) {
+                    o.setSettleTime(LocalDateTime.now());
+                }
+            }
+            return orderRepo.save(o);
+        });
+    }
 }
